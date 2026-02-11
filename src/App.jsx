@@ -29,7 +29,8 @@ import {
   FileText,
   Table as TableIcon,
   Check,
-  Plus as PlusIcon
+  Plus as PlusIcon,
+  AlertCircle
 } from 'lucide-react';
 
 const formatCurrency = (val) => {
@@ -39,6 +40,9 @@ const formatCurrency = (val) => {
     minimumFractionDigits: 0
   }).format(val || 0);
 };
+
+// Default images based on project availability
+const DEFAULT_FOTOREF = '/office_building_facade.png';
 
 function App() {
   const [items, setItems] = useState([]);
@@ -114,19 +118,43 @@ function App() {
       detail: newItem.detail,
       quantity: parseInt(newItem.quantity) || 1,
       price: parseFloat(newItem.price) || 0,
-      image_url: newItem.image_url // Persist image URL if it exists for that space
+      image_url: newItem.image_url
     });
     if (error) alert("Error al agregar ítem: " + error.message);
   };
 
   const handleUpdateImage = async (floor, space, file) => {
+    if (!file) return;
     setSyncing(true);
-    const fileName = `${floor}-${space}-${Date.now()}.${file.name.split('.').pop()}`;
-    await supabase.storage.from('space-images').upload(fileName, file);
-    const { data: { publicUrl } } = supabase.storage.from('space-images').getPublicUrl(fileName);
-    await supabase.from('inventory').update({ image_url: publicUrl }).eq('floor', floor).eq('space', space);
-    setSyncing(false);
-    fetchData();
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${floor}-${space}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('space-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('space-images')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('inventory')
+        .update({ image_url: publicUrl })
+        .eq('floor', floor)
+        .eq('space', space);
+
+      if (updateError) throw updateError;
+
+      fetchData();
+    } catch (err) {
+      alert("Error con la imagen: " + err.message + "\n\nVerifique que creó el bucket 'space-images' en Supabase y que es público.");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const inventory = useMemo(() => {
@@ -134,7 +162,6 @@ function App() {
       const key = `${item.floor}-${item.space}`;
       if (!acc[key]) acc[key] = { floor: item.floor, space: item.space, image_url: item.image_url, items: [] };
       acc[key].items.push(item);
-      // Ensure existing image_url is propagated to the space object
       if (item.image_url && !acc[key].image_url) acc[key].image_url = item.image_url;
       return acc;
     }, {});
@@ -238,7 +265,8 @@ function App() {
     <div className="flex bg-[#f8fafc] min-h-screen">
       {selectedImage && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-8 animate-in fade-in duration-200" onClick={() => setSelectedImage(null)}>
-          <img src={selectedImage} className="max-w-full max-h-full rounded-2xl object-contain border-4 border-white/10" alt="" />
+          <img src={selectedImage} className="max-w-[90%] max-h-[90%] rounded-2xl object-contain border-4 border-white/10 shadow-2xl" alt="" />
+          <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-all"><X size={48} /></button>
         </div>
       )}
 
@@ -273,7 +301,10 @@ function App() {
           {items.length === 0 ? (
             <button onClick={seedDatabase} className="w-full bg-blue-600 text-white p-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><RefreshCw size={14} />Inicializar Cloud</button>
           ) : (
-            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center gap-2 text-emerald-600"><CloudCheck size={18} /><span className="text-[10px] font-black uppercase">Online</span></div>
+            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center gap-2 text-emerald-600">
+              {syncing ? <RefreshCw className="animate-spin" size={18} /> : <CloudCheck size={18} />}
+              <span className="text-[10px] font-black uppercase">{syncing ? 'Sincronizando...' : 'Online'}</span>
+            </div>
           )}
         </div>
       </aside>
@@ -291,7 +322,7 @@ function App() {
             </div>
 
             <div className="mb-8 flex items-center justify-between">
-              <h3 className="text-2xl font-black text-slate-900 uppercase">Reportes Técnicos</h3>
+              <h3 className="text-2xl font-black text-slate-900 uppercase">Resumen por Áreas</h3>
               <div className="flex gap-4">
                 <button onClick={exportPDF} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-red-500 hover:text-red-500 flex items-center gap-2 transition-all"><FileText size={16} /> PDF Profesional</button>
                 <button onClick={exportExcel} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-2 transition-all"><TableIcon size={16} /> Excel Detallado</button>
@@ -301,10 +332,10 @@ function App() {
             <div className="summary-grid">
               {inventory.map(space => {
                 const spaceTotal = space.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-                const defaultImg = space.floor === 'PB' ? '/Planta baja general.png' : space.floor === '1' ? '/Planta piso 1.png' : '/Planta piso 2.png';
+                const currentImg = space.image_url || DEFAULT_FOTOREF;
                 return (
                   <div key={`${space.floor}-${space.space}`} className="summary-card-v2" onClick={() => { setSelectedSpaceId(`${space.floor}-${space.space}`); setView('operational'); }}>
-                    <img src={space.image_url || defaultImg} className="mini-thumb" alt="" />
+                    <img src={currentImg} className="mini-thumb" alt="" />
                     <span className="floor-tag">PISO {space.floor}</span>
                     <h4 className="space-name">{space.space}</h4>
                     <p className="amount-display">{formatCurrency(spaceTotal)}</p>
@@ -347,7 +378,7 @@ function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteIte
   const [newItem, setNewItem] = useState({ item_name: '', detail: '', quantity: 1, price: 0 });
 
   const total = space.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const currentImg = space.image_url || (space.floor === 'PB' ? '/Planta baja general.png' : space.floor === '1' ? '/Planta piso 1.png' : '/Planta piso 2.png');
+  const currentImg = space.image_url || DEFAULT_FOTOREF;
 
   const handleSaveNewItem = () => {
     if (!newItem.item_name) {
@@ -364,7 +395,7 @@ function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteIte
       <div className="dash-header items-center">
         <div className="flex gap-8 items-center">
           <div className="group relative w-40 h-28 flex-shrink-0 cursor-pointer overflow-hidden rounded-xl shadow-lg border-2 border-slate-100" onClick={() => onEnlarge(currentImg)}>
-            <img src={currentImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="" />
+            <img src={currentImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 size={18} className="text-white" /></div>
             <label className="absolute bottom-1 right-1 bg-white p-2 rounded-md shadow-lg cursor-pointer hover:bg-blue-50 transition-colors" title="Cambiar Foto" onClick={e => e.stopPropagation()}><Camera size={14} className="text-blue-600" /><input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} /></label>
           </div>
@@ -376,7 +407,6 @@ function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteIte
       <div className="dash-grid mt-10 bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
         <div className="grid-header px-4"><span>Ítem Inventariado</span><span className="text-center">Cant.</span><span>Precio Unit.</span><span className="text-right">Subtotal</span><span className="text-center">Acciones</span></div>
 
-        {/* ADD NEW ITEM FORM ROW */}
         {isAdding && (
           <div className="grid-row px-4 bg-blue-50/50 border-2 border-blue-200 rounded-xl mb-4 animate-in slide-in-from-top-2 duration-300">
             <div className="cell-name pr-4">
