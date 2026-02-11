@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient';
 import inventoryData from './data/inventory.json';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import {
   Building2,
   Search,
@@ -9,7 +12,7 @@ import {
   LayoutGrid,
   ChevronDown,
   ChevronRight,
-  TrendingUp,
+  PlusCircle,
   Box,
   Download,
   Camera,
@@ -19,9 +22,11 @@ import {
   Settings,
   RefreshCw,
   CloudCheck,
-  CloudOff,
   Maximize2,
-  X
+  X,
+  ArrowRight,
+  FileText,
+  Table as TableIcon
 } from 'lucide-react';
 
 const formatCurrency = (val) => {
@@ -41,24 +46,20 @@ function App() {
   const [selectedSpaceId, setSelectedSpaceId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedFloors, setExpandedFloors] = useState(['PB', '1', '2', 'IT']);
-  const [selectedImage, setSelectedImage] = useState(null); // For lightbox
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const fetchData = async () => {
     const { data, error } = await supabase
       .from('inventory')
       .select('*')
       .order('floor', { ascending: true });
-
-    if (!error) {
-      setItems(data);
-    }
+    if (!error) setItems(data);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-    const channel = supabase
-      .channel('schema-db-changes')
+    const channel = supabase.channel('schema-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -76,8 +77,8 @@ function App() {
         quantity: item.quantity
       }))
     );
-    const { error } = await supabase.from('inventory').insert(flatItems);
-    if (!error) fetchData();
+    await supabase.from('inventory').insert(flatItems);
+    fetchData();
     setSyncing(false);
   };
 
@@ -93,34 +94,10 @@ function App() {
 
   const handleUpdateImage = async (floor, space, file) => {
     setSyncing(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${floor}-${space}-${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    // 1. Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from('space-images')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      alert("Error al subir imagen: " + uploadError.message);
-      setSyncing(false);
-      return;
-    }
-
-    // 2. Get Public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('space-images')
-      .getPublicUrl(filePath);
-
-    // 3. Update all items in that space to have the same image
-    const { error: updateError } = await supabase
-      .from('inventory')
-      .update({ image_url: publicUrl })
-      .eq('floor', floor)
-      .eq('space', space);
-
-    if (updateError) alert("Error al guardar URL: " + updateError.message);
+    const fileName = `${floor}-${space}-${Date.now()}.${file.name.split('.').pop()}`;
+    await supabase.storage.from('space-images').upload(fileName, file);
+    const { data: { publicUrl } } = supabase.storage.from('space-images').getPublicUrl(fileName);
+    await supabase.from('inventory').update({ image_url: publicUrl }).eq('floor', floor).eq('space', space);
     setSyncing(false);
     fetchData();
   };
@@ -128,9 +105,7 @@ function App() {
   const inventory = useMemo(() => {
     const grouped = items.reduce((acc, item) => {
       const key = `${item.floor}-${item.space}`;
-      if (!acc[key]) {
-        acc[key] = { floor: item.floor, space: item.space, image_url: item.image_url, items: [] };
-      }
+      if (!acc[key]) acc[key] = { floor: item.floor, space: item.space, image_url: item.image_url, items: [] };
       acc[key].items.push(item);
       return acc;
     }, {});
@@ -151,46 +126,133 @@ function App() {
   }, [inventory, selectedFloor, selectedSpaceId, searchTerm]);
 
   const grandTotal = useMemo(() => items.reduce((acc, item) => acc + (item.price * item.quantity), 0), [items]);
+  const totalItemsCount = useMemo(() => items.reduce((acc, item) => acc + item.quantity, 0), [items]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-900">
-      <RefreshCw className="animate-spin text-white" size={48} />
-    </div>
-  );
+  // EXPORT PDF LOGIC
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    const date = new Date().toLocaleDateString();
+
+    // Title
+    doc.setFontSize(22);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Bahía Blanca 519 - Informe de Inventario', 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generado el: ${date}`, 14, 28);
+    doc.text(`Inversión Total: ${formatCurrency(grandTotal)}`, 14, 34);
+
+    // Summary Table
+    const summaryData = inventory.map(space => [
+      `Piso ${space.floor}`,
+      space.space,
+      space.items.length,
+      formatCurrency(space.items.reduce((a, i) => a + (i.price * i.quantity), 0))
+    ]);
+
+    doc.autoTable({
+      startY: 45,
+      head: [['Nivel', 'Espacio', 'Ítems', 'Subtotal']],
+      body: summaryData,
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235] },
+      margin: { top: 45 }
+    });
+
+    // Detail Section
+    inventory.forEach((space) => {
+      doc.addPage();
+      doc.setFontSize(16);
+      doc.setTextColor(37, 99, 235);
+      doc.text(`Detalle: ${space.space} (Piso ${space.floor})`, 14, 20);
+
+      const spaceTotal = space.items.reduce((a, i) => a + (i.price * i.quantity), 0);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Valor Total del Área: ${formatCurrency(spaceTotal)}`, 14, 28);
+
+      const itemsData = space.items.map(item => [
+        item.item_name,
+        item.detail || '-',
+        item.quantity,
+        formatCurrency(item.price),
+        formatCurrency(item.price * item.quantity)
+      ]);
+
+      doc.autoTable({
+        startY: 35,
+        head: [['Ítem', 'Detalle', 'Cant.', 'Precio Unit.', 'Subtotal']],
+        body: itemsData,
+        theme: 'striped',
+        headStyles: { fillColor: [15, 23, 42] },
+        columnStyles: {
+          2: { halign: 'center' },
+          3: { halign: 'right' },
+          4: { halign: 'right' }
+        }
+      });
+    });
+
+    doc.save(`INFORME_BB519_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  // EXPORT EXCEL LOGIC
+  const exportExcel = () => {
+    // 1. Create Summary Sheet
+    const summarySheetData = inventory.map(space => ({
+      Nivel: space.floor,
+      Espacio: space.space,
+      'Cant. Items': space.items.length,
+      Total: space.items.reduce((a, i) => a + (i.price * i.quantity), 0)
+    }));
+    const summaryWs = XLSX.utils.json_to_sheet(summarySheetData);
+
+    // 2. Create Detalle Sheet
+    const detailSheetData = items.map(item => ({
+      Nivel: item.floor,
+      Espacio: item.space,
+      Ítem: item.item_name,
+      Detalle: item.detail || '',
+      Cantidad: item.quantity,
+      'Precio Unitario': item.price,
+      Subtotal: item.price * item.quantity
+    }));
+    const detailWs = XLSX.utils.json_to_sheet(detailSheetData);
+
+    // 3. Create Workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Resumen de Áreas");
+    XLSX.utils.book_append_sheet(wb, detailWs, "Detalle de Activos");
+
+    // 4. Save
+    XLSX.writeFile(wb, `REPORTE_TECNICO_BB519.xlsx`);
+  };
+
+  if (loading) return <div className="flex items-center justify-center min-h-screen bg-slate-900"><RefreshCw className="animate-spin text-white" size={48} /></div>;
 
   return (
     <div className="flex bg-[#f8fafc] min-h-screen">
-      {/* LIGHTBOX */}
       {selectedImage && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-8 animate-in fade-in zoom-in duration-200" onClick={() => setSelectedImage(null)}>
-          <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors"><X size={40} /></button>
-          <img src={selectedImage} className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain border-4 border-white/10" alt="Enlarged view" />
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-8 animate-in fade-in duration-200" onClick={() => setSelectedImage(null)}>
+          <img src={selectedImage} className="max-w-full max-h-full rounded-2xl object-contain border-4 border-white/10" alt="" />
         </div>
       )}
 
-      {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg"><Building2 size={22} /></div>
-            <div>
-              <h1 className="text-lg font-black tracking-tighter text-slate-900 leading-tight">BB 519</h1>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">DASHBOARD CLOUD</span>
-            </div>
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><Building2 size={22} /></div>
+            <div><h1 className="text-lg font-black tracking-tighter text-slate-900">BB 519</h1><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">DASHBOARD</span></div>
           </div>
         </div>
-
         <div className="sidebar-content">
           <button onClick={() => setView('summary')} className={`nav-item mb-2 ${view === 'summary' ? 'active' : ''}`}><PieChart size={18} />Resumen General</button>
           <button onClick={() => setView('operational')} className={`nav-item mb-6 ${view === 'operational' ? 'active' : ''}`}><LayoutGrid size={18} />Vista Operativa</button>
-
           <p className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Estructura</p>
           {['PB', '1', '2', 'IT'].map(floor => (
             <div key={floor} className="nav-group">
-              <button
-                onClick={() => { toggleFloor(floor); setSelectedFloor(floor); setView('operational'); }}
-                className={`nav-item justify-between ${selectedFloor === floor ? 'active' : ''}`}
-              >
+              <button onClick={() => { setExpandedFloors(prev => prev.includes(floor) ? prev.filter(f => f !== floor) : [...prev, floor]); setSelectedFloor(floor); setView('operational'); }} className={`nav-item justify-between ${selectedFloor === floor ? 'active' : ''}`}>
                 <div className="flex items-center gap-3"><Layers size={18} /><span>PISO {floor}</span></div>
                 {expandedFloors.includes(floor) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </button>
@@ -204,48 +266,66 @@ function App() {
             </div>
           ))}
         </div>
-
         <div className="sidebar-footer">
           {items.length === 0 ? (
-            <button onClick={seedDatabase} className="w-full bg-blue-600 text-white p-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><RefreshCw size={14} />Inicializar Datos</button>
+            <button onClick={seedDatabase} className="w-full bg-blue-600 text-white p-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><RefreshCw size={14} />Inicializar Cloud</button>
           ) : (
-            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center gap-2 text-emerald-600"><CloudCheck size={18} /><span className="text-[10px] font-black uppercase">Sincronización Activa</span></div>
+            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center gap-2 text-emerald-600"><CloudCheck size={18} /><span className="text-[10px] font-black uppercase">Online</span></div>
           )}
         </div>
       </aside>
 
-      {/* MAIN */}
       <main className="main-layout flex-1">
         {view === 'summary' ? (
           <div className="animate-in fade-in duration-500">
             <div className="grand-total-section">
-              <span className="label">Inversión Edificio Bahía Blanca 519</span>
-              <span className="value">{formatCurrency(grandTotal)}</span>
+              <span className="label">Informe de Inversión Bahía Blanca 519</span>
+              <h1 className="value">{formatCurrency(grandTotal)}</h1>
+              <div className="flex justify-center gap-8 mt-6">
+                <div className="bg-white/10 px-4 py-2 rounded-xl text-xs font-bold">{totalItemsCount} ACTIVOS</div>
+                <div className="bg-white/10 px-4 py-2 rounded-xl text-xs font-bold">{inventory.length} ESPACIOS</div>
+              </div>
             </div>
-            <div className="summary-grid mt-12">
-              {inventory.map(space => (
-                <div key={`${space.floor}-${space.space}`} className="summary-card flex gap-6 items-center hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => { setSelectedSpaceId(`${space.floor}-${space.space}`); setView('operational'); }}>
-                  <img src={space.image_url || '/office_building_facade.png'} className="w-24 h-24 rounded-2xl object-cover shadow-lg" alt="" />
-                  <div>
-                    <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest">PISO {space.floor}</h4>
-                    <p className="text-xl font-black text-slate-800">{space.space}</p>
-                    <p className="text-2xl font-black text-emerald-600 mt-1">{formatCurrency(space.items.reduce((a, i) => a + (i.price * i.quantity), 0))}</p>
+
+            <div className="mb-8 flex items-center justify-between">
+              <h3 className="text-2xl font-black text-slate-900 uppercase">Reportes Técnicos</h3>
+              <div className="flex gap-4">
+                <button onClick={exportPDF} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-red-500 hover:text-red-500 flex items-center gap-2 transition-all">
+                  <FileText size={16} /> Exportar PDF Profesional
+                </button>
+                <button onClick={exportExcel} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-2 transition-all">
+                  <TableIcon size={16} /> Exportar Excel Estructurado
+                </button>
+              </div>
+            </div>
+
+            <div className="summary-grid">
+              {inventory.map(space => {
+                const spaceTotal = space.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                const defaultImg = space.floor === 'PB' ? '/Planta baja general.png' : space.floor === '1' ? '/Planta piso 1.png' : '/Planta piso 2.png';
+                return (
+                  <div key={`${space.floor}-${space.space}`} className="summary-card-v2" onClick={() => { setSelectedSpaceId(`${space.floor}-${space.space}`); setView('operational'); }}>
+                    <img src={space.image_url || defaultImg} className="mini-thumb" alt="" />
+                    <span className="floor-tag">PISO {space.floor}</span>
+                    <h4 className="space-name">{space.space}</h4>
+                    <p className="amount-display">{formatCurrency(spaceTotal)}</p>
+                    <div className="footer-stats">
+                      <span className="item-pill">{space.items.length} ITEMS</span>
+                      <ArrowRight size={16} className="text-slate-300" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (
-          <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-12 animate-in slide-in-from-bottom-4">
+            <div className="flex items-center justify-between gap-8 mb-12">
+              <div className="flex-1 bg-white border-2 border-slate-100 rounded-3xl p-3 flex items-center gap-4 shadow-xl"><Search size={22} className="text-slate-400" /><input type="text" placeholder="Buscar en inventario..." className="flex-1 bg-transparent border-none outline-none font-bold text-slate-700" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+              <div className="bg-emerald-600 text-white px-8 py-4 rounded-3xl font-black text-2xl font-mono shadow-xl">{formatCurrency(filteredInventory.reduce((a, s) => a + s.items.reduce((si, i) => si + (i.price * i.quantity), 0), 0))}</div>
+            </div>
             {filteredInventory.map(space => (
-              <DashboardSpaceRow
-                key={`${space.floor}-${space.space}`}
-                space={space}
-                onUpdateQuantity={handleUpdateQuantity}
-                onUpdatePrice={handleUpdatePrice}
-                onImageUpload={handleUpdateImage}
-                onEnlarge={(url) => setSelectedImage(url)}
-              />
+              <DashboardSpaceRow key={`${space.floor}-${space.space}`} space={space} onUpdateQuantity={handleUpdateQuantity} onUpdatePrice={handleUpdatePrice} onImageUpload={handleUpdateImage} onEnlarge={url => setSelectedImage(url)} />
             ))}
           </div>
         )}
@@ -257,45 +337,28 @@ function App() {
 function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onImageUpload, onEnlarge }) {
   const total = space.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const currentImg = space.image_url || (space.floor === 'PB' ? '/Planta baja general.png' : space.floor === '1' ? '/Planta piso 1.png' : '/Planta piso 2.png');
-
   return (
     <div className="dash-card border-l-8 border-l-blue-500">
       <div className="dash-header items-center">
         <div className="flex gap-8 items-center">
-          <div className="group relative thumbnail-container w-48 h-32 flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all" onClick={() => onEnlarge(currentImg)}>
-            <img src={currentImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Maximize2 size={24} className="text-white" />
-            </div>
-            <label className="absolute bottom-2 right-2 bg-white p-2 rounded-lg shadow-lg cursor-pointer hover:bg-slate-50 transition-colors" onClick={(e) => e.stopPropagation()}>
-              <Camera size={16} className="text-blue-600" />
-              <input type="file" className="hidden" accept="image/*" onChange={(e) => onImageUpload(space.floor, space.space, e.target.files[0])} />
-            </label>
+          <div className="group relative w-32 h-24 flex-shrink-0 cursor-pointer overflow-hidden rounded-xl shadow-lg" onClick={() => onEnlarge(currentImg)}>
+            <img src={currentImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="" />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 size={18} className="text-white" /></div>
+            <label className="absolute bottom-1 right-1 bg-white p-1.5 rounded-md shadow-lg cursor-pointer" onClick={e => e.stopPropagation()}><Camera size={12} className="text-blue-600" /><input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} /></label>
           </div>
-          <div>
-            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">PISO {space.floor}</p>
-            <h2 className="text-4xl font-black text-slate-900 leading-none">{space.space}</h2>
-            <p className="text-xs font-bold text-slate-400 mt-3 flex items-center gap-2 uppercase tracking-tighter"><MapPin size={14} /> Bahía Blanca 519 | {space.items.length} Activos Cloud</p>
-          </div>
+          <div><p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">PISO {space.floor}</p><h2 className="text-4xl font-black text-slate-900 leading-none">{space.space}</h2><p className="text-[10px] font-bold text-slate-400 mt-2"><MapPin size={12} className="inline mr-1" /> Bahía Blanca 519 | {space.items.length} Activos</p></div>
         </div>
-        <div className="total-pill bg-slate-900 p-6 rounded-3xl text-right shadow-2xl scale-110">
-          <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-1">TOTAL ÁREA</span>
-          <span className="text-3xl font-black text-white font-mono">{formatCurrency(total)}</span>
-        </div>
+        <div className="total-pill bg-slate-900 p-6 rounded-3xl text-right scale-110"><span className="text-[10px] font-black text-blue-400 uppercase block mb-1">TOTAL ÁREA</span><span className="text-3xl font-black text-white font-mono">{formatCurrency(total)}</span></div>
       </div>
-
-      <div className="dash-grid mt-12 bg-slate-50/50 rounded-3xl p-6 border border-slate-100">
-        <div className="grid-header px-6"><span>Descripción Detallada</span><span className="text-center">Cant.</span><span>Precio Unitario (Editable)</span><span className="text-right">Subtotal</span><span className="text-center">Acciones</span></div>
+      <div className="dash-grid mt-10 bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
+        <div className="grid-header px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><span>Ítem</span><span className="text-center">Cant.</span><span>Precio</span><span className="text-right">Subtotal</span><span className="text-center">Operar</span></div>
         {space.items.map(item => (
-          <div key={item.id} className="grid-row px-6">
-            <div className="cell-name"><span className="text-lg block font-bold">{item.item_name}</span><p className="text-[11px] uppercase tracking-wider opacity-60 font-semibold">{item.detail || 'ESPECIFICACIÓN ESTÁNDAR'}</p></div>
-            <div className="cell-qty text-center font-black text-4xl text-blue-600 font-mono">{item.quantity}</div>
-            <div className="cell-price"><div className="price-input-wrapper"><input type="number" className="price-input" value={item.price} onChange={(e) => onUpdatePrice(item.id, e.target.value)} /></div></div>
-            <div className="cell-subtotal text-right font-black text-2xl text-emerald-600 font-mono">{formatCurrency(item.price * item.quantity)}</div>
-            <div className="flex justify-center gap-3">
-              <button onClick={() => onUpdateQuantity(item.id, -1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-red-500 hover:text-red-500 transition-all flex items-center justify-center"><Minus size={18} /></button>
-              <button onClick={() => onUpdateQuantity(item.id, 1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-emerald-500 hover:text-emerald-500 transition-all flex items-center justify-center"><Plus size={18} /></button>
-            </div>
+          <div key={item.id} className="grid-row px-4">
+            <div className="cell-name"><span className="text-base block font-bold">{item.item_name}</span><p className="text-[10px] uppercase opacity-60 font-bold">{item.detail || 'ESPECIFICACIÓN ESTÁNDAR'}</p></div>
+            <div className="cell-qty text-center font-black text-3xl text-blue-600 font-mono">{item.quantity}</div>
+            <div className="cell-price px-4"><div className="price-input-wrapper"><input type="number" className="price-input" value={item.price} onChange={e => onUpdatePrice(item.id, e.target.value)} /></div></div>
+            <div className="cell-subtotal text-right font-black text-xl text-emerald-600 font-mono">{formatCurrency(item.price * item.quantity)}</div>
+            <div className="flex justify-center gap-2"><button onClick={() => onUpdateQuantity(item.id, -1, item.quantity)} className="w-8 h-8 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-red-500 hover:text-red-500 flex items-center justify-center"><Minus size={14} /></button><button onClick={() => onUpdateQuantity(item.id, 1, item.quantity)} className="w-8 h-8 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-emerald-500 hover:text-emerald-500 flex items-center justify-center"><Plus size={14} /></button></div>
           </div>
         ))}
       </div>
