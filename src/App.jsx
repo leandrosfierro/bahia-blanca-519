@@ -335,12 +335,22 @@ function App() {
                 const currentImg = space.image_url || DEFAULT_FOTOREF;
                 return (
                   <div key={`${space.floor}-${space.space}`} className="summary-card-v2" onClick={() => { setSelectedSpaceId(`${space.floor}-${space.space}`); setView('operational'); }}>
-                    <img
-                      src={currentImg}
-                      className="mini-thumb"
-                      alt=""
-                      onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_FOTOREF; }}
-                    />
+                    <div className="relative group/thumb mb-4">
+                      <img
+                        src={currentImg}
+                        className="mini-thumb !mb-0"
+                        alt=""
+                        onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_FOTOREF; }}
+                      />
+                      <label
+                        className="absolute bottom-2 right-2 bg-white/90 p-2 rounded-lg shadow-xl cursor-pointer hover:bg-blue-600 hover:text-white transition-all backdrop-blur-sm border border-slate-200"
+                        title="Cambiar Foto"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <Camera size={16} />
+                        <input type="file" className="hidden" accept="image/*" onChange={e => handleUpdateImage(space.floor, space.space, e.target.files[0])} />
+                      </label>
+                    </div>
                     <span className="floor-tag">PISO {space.floor}</span>
                     <h4 className="space-name">{space.space}</h4>
                     <p className="amount-display">{formatCurrency(spaceTotal)}</p>
@@ -406,8 +416,17 @@ function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteIte
               alt=""
               onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_FOTOREF; }}
             />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 size={18} className="text-white" /></div>
-            <label className="absolute bottom-1 right-1 bg-white p-2 rounded-md shadow-lg cursor-pointer hover:bg-blue-50 transition-colors" title="Cambiar Foto" onClick={e => e.stopPropagation()}><Camera size={14} className="text-blue-600" /><input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} /></label>
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Maximize2 size={18} className="text-white" />
+            </div>
+            <label
+              className="absolute bottom-2 right-2 z-10 bg-white shadow-2xl p-2 rounded-lg cursor-pointer hover:bg-blue-600 hover:text-white transition-all border border-slate-100"
+              title="Cambiar Foto"
+              onClick={e => e.stopPropagation()}
+            >
+              <Camera size={14} />
+              <input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} />
+            </label>
           </div>
           <div><p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">PISO {space.floor}</p><div className="flex items-center gap-4"><h2 className="text-4xl font-black text-slate-900 leading-none">{space.space}</h2><button onClick={() => setIsAdding(!isAdding)} className={`p-2 rounded-lg transition-all ${isAdding ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="Agregar Nuevo Item">{isAdding ? <X size={20} /> : <PlusIcon size={20} />}</button></div><p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest"><MapPin size={12} className="inline mr-1" /> Bahía Blanca 519 | {space.items.length} ACTIVOS CLOUD</p></div>
         </div>
