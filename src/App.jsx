@@ -24,6 +24,7 @@ import {
   CloudCheck,
   Maximize2,
   X,
+  Trash2,
   ArrowRight,
   FileText,
   Table as TableIcon
@@ -52,7 +53,8 @@ function App() {
     const { data, error } = await supabase
       .from('inventory')
       .select('*')
-      .order('floor', { ascending: true });
+      .order('floor', { ascending: true })
+      .order('item_name', { ascending: true });
     if (!error) setItems(data);
     setLoading(false);
   };
@@ -82,14 +84,28 @@ function App() {
     setSyncing(false);
   };
 
-  const handleUpdateQuantity = async (id, delta, currentQty) => {
-    const nextQty = Math.max(0, currentQty + delta);
+  const handleUpdateQuantity = async (id, itemName, delta, currentQty) => {
+    const nextQty = currentQty + delta;
+
+    if (nextQty <= 0) {
+      handleDeleteItem(id, itemName);
+      return;
+    }
+
     await supabase.from('inventory').update({ quantity: nextQty }).eq('id', id);
   };
 
   const handleUpdatePrice = async (id, newPrice) => {
     const priceVal = parseFloat(newPrice) || 0;
     await supabase.from('inventory').update({ price: priceVal }).eq('id', id);
+  };
+
+  const handleDeleteItem = async (id, itemName) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente "${itemName}" del inventario?`)) {
+      const { error } = await supabase.from('inventory').delete().eq('id', id);
+      if (error) alert("Error al eliminar: " + error.message);
+      // fetchData() se llama vía suscripción real-time
+    }
   };
 
   const handleUpdateImage = async (floor, space, file) => {
@@ -128,50 +144,38 @@ function App() {
   const grandTotal = useMemo(() => items.reduce((acc, item) => acc + (item.price * item.quantity), 0), [items]);
   const totalItemsCount = useMemo(() => items.reduce((acc, item) => acc + item.quantity, 0), [items]);
 
-  // EXPORT PDF LOGIC
   const exportPDF = () => {
     const doc = new jsPDF();
     const date = new Date().toLocaleDateString();
-
-    // Title
     doc.setFontSize(22);
     doc.setTextColor(15, 23, 42);
     doc.text('Bahía Blanca 519 - Informe de Inventario', 14, 20);
-
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Generado el: ${date}`, 14, 28);
     doc.text(`Inversión Total: ${formatCurrency(grandTotal)}`, 14, 34);
-
-    // Summary Table
     const summaryData = inventory.map(space => [
       `Piso ${space.floor}`,
       space.space,
       space.items.length,
       formatCurrency(space.items.reduce((a, i) => a + (i.price * i.quantity), 0))
     ]);
-
     doc.autoTable({
       startY: 45,
       head: [['Nivel', 'Espacio', 'Ítems', 'Subtotal']],
       body: summaryData,
       theme: 'grid',
       headStyles: { fillColor: [37, 99, 235] },
-      margin: { top: 45 }
     });
-
-    // Detail Section
     inventory.forEach((space) => {
       doc.addPage();
       doc.setFontSize(16);
       doc.setTextColor(37, 99, 235);
       doc.text(`Detalle: ${space.space} (Piso ${space.floor})`, 14, 20);
-
       const spaceTotal = space.items.reduce((a, i) => a + (i.price * i.quantity), 0);
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(`Valor Total del Área: ${formatCurrency(spaceTotal)}`, 14, 28);
-
       const itemsData = space.items.map(item => [
         item.item_name,
         item.detail || '-',
@@ -179,27 +183,19 @@ function App() {
         formatCurrency(item.price),
         formatCurrency(item.price * item.quantity)
       ]);
-
       doc.autoTable({
         startY: 35,
         head: [['Ítem', 'Detalle', 'Cant.', 'Precio Unit.', 'Subtotal']],
         body: itemsData,
         theme: 'striped',
         headStyles: { fillColor: [15, 23, 42] },
-        columnStyles: {
-          2: { halign: 'center' },
-          3: { halign: 'right' },
-          4: { halign: 'right' }
-        }
+        columnStyles: { 2: { halign: 'center' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
       });
     });
-
     doc.save(`INFORME_BB519_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // EXPORT EXCEL LOGIC
   const exportExcel = () => {
-    // 1. Create Summary Sheet
     const summarySheetData = inventory.map(space => ({
       Nivel: space.floor,
       Espacio: space.space,
@@ -207,8 +203,6 @@ function App() {
       Total: space.items.reduce((a, i) => a + (i.price * i.quantity), 0)
     }));
     const summaryWs = XLSX.utils.json_to_sheet(summarySheetData);
-
-    // 2. Create Detalle Sheet
     const detailSheetData = items.map(item => ({
       Nivel: item.floor,
       Espacio: item.space,
@@ -219,13 +213,9 @@ function App() {
       Subtotal: item.price * item.quantity
     }));
     const detailWs = XLSX.utils.json_to_sheet(detailSheetData);
-
-    // 3. Create Workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, summaryWs, "Resumen de Áreas");
     XLSX.utils.book_append_sheet(wb, detailWs, "Detalle de Activos");
-
-    // 4. Save
     XLSX.writeFile(wb, `REPORTE_TECNICO_BB519.xlsx`);
   };
 
@@ -290,12 +280,8 @@ function App() {
             <div className="mb-8 flex items-center justify-between">
               <h3 className="text-2xl font-black text-slate-900 uppercase">Reportes Técnicos</h3>
               <div className="flex gap-4">
-                <button onClick={exportPDF} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-red-500 hover:text-red-500 flex items-center gap-2 transition-all">
-                  <FileText size={16} /> Exportar PDF Profesional
-                </button>
-                <button onClick={exportExcel} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-2 transition-all">
-                  <TableIcon size={16} /> Exportar Excel Estructurado
-                </button>
+                <button onClick={exportPDF} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-red-500 hover:text-red-500 flex items-center gap-2 transition-all"><FileText size={16} /> PDF Profesional</button>
+                <button onClick={exportExcel} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-2 transition-all"><TableIcon size={16} /> Excel Detallado</button>
               </div>
             </div>
 
@@ -325,7 +311,15 @@ function App() {
               <div className="bg-emerald-600 text-white px-8 py-4 rounded-3xl font-black text-2xl font-mono shadow-xl">{formatCurrency(filteredInventory.reduce((a, s) => a + s.items.reduce((si, i) => si + (i.price * i.quantity), 0), 0))}</div>
             </div>
             {filteredInventory.map(space => (
-              <DashboardSpaceRow key={`${space.floor}-${space.space}`} space={space} onUpdateQuantity={handleUpdateQuantity} onUpdatePrice={handleUpdatePrice} onImageUpload={handleUpdateImage} onEnlarge={url => setSelectedImage(url)} />
+              <DashboardSpaceRow
+                key={`${space.floor}-${space.space}`}
+                space={space}
+                onUpdateQuantity={handleUpdateQuantity}
+                onUpdatePrice={handleUpdatePrice}
+                onDeleteItem={handleDeleteItem}
+                onImageUpload={handleUpdateImage}
+                onEnlarge={url => setSelectedImage(url)}
+              />
             ))}
           </div>
         )}
@@ -334,7 +328,7 @@ function App() {
   );
 }
 
-function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onImageUpload, onEnlarge }) {
+function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteItem, onImageUpload, onEnlarge }) {
   const total = space.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const currentImg = space.image_url || (space.floor === 'PB' ? '/Planta baja general.png' : space.floor === '1' ? '/Planta piso 1.png' : '/Planta piso 2.png');
   return (
@@ -346,19 +340,23 @@ function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onImageUplo
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 size={18} className="text-white" /></div>
             <label className="absolute bottom-1 right-1 bg-white p-1.5 rounded-md shadow-lg cursor-pointer" onClick={e => e.stopPropagation()}><Camera size={12} className="text-blue-600" /><input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} /></label>
           </div>
-          <div><p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">PISO {space.floor}</p><h2 className="text-4xl font-black text-slate-900 leading-none">{space.space}</h2><p className="text-[10px] font-bold text-slate-400 mt-2"><MapPin size={12} className="inline mr-1" /> Bahía Blanca 519 | {space.items.length} Activos</p></div>
+          <div><p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">PISO {space.floor}</p><h2 className="text-4xl font-black text-slate-900 leading-none">{space.space}</h2><p className="text-[10px] font-bold text-slate-400 mt-2"><MapPin size={12} className="inline mr-1" /> Bahía Blanca 519</p></div>
         </div>
         <div className="total-pill bg-slate-900 p-6 rounded-3xl text-right scale-110"><span className="text-[10px] font-black text-blue-400 uppercase block mb-1">TOTAL ÁREA</span><span className="text-3xl font-black text-white font-mono">{formatCurrency(total)}</span></div>
       </div>
       <div className="dash-grid mt-10 bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
-        <div className="grid-header px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4"><span>Ítem</span><span className="text-center">Cant.</span><span>Precio</span><span className="text-right">Subtotal</span><span className="text-center">Operar</span></div>
+        <div className="grid-header px-4"><span>Ítem Inventariado</span><span className="text-center">Cant.</span><span>Precio Unit.</span><span className="text-right">Subtotal</span><span className="text-center">Acciones</span></div>
         {space.items.map(item => (
           <div key={item.id} className="grid-row px-4">
             <div className="cell-name"><span className="text-base block font-bold">{item.item_name}</span><p className="text-[10px] uppercase opacity-60 font-bold">{item.detail || 'ESPECIFICACIÓN ESTÁNDAR'}</p></div>
             <div className="cell-qty text-center font-black text-3xl text-blue-600 font-mono">{item.quantity}</div>
             <div className="cell-price px-4"><div className="price-input-wrapper"><input type="number" className="price-input" value={item.price} onChange={e => onUpdatePrice(item.id, e.target.value)} /></div></div>
             <div className="cell-subtotal text-right font-black text-xl text-emerald-600 font-mono">{formatCurrency(item.price * item.quantity)}</div>
-            <div className="flex justify-center gap-2"><button onClick={() => onUpdateQuantity(item.id, -1, item.quantity)} className="w-8 h-8 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-red-500 hover:text-red-500 flex items-center justify-center"><Minus size={14} /></button><button onClick={() => onUpdateQuantity(item.id, 1, item.quantity)} className="w-8 h-8 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-emerald-500 hover:text-emerald-500 flex items-center justify-center"><Plus size={14} /></button></div>
+            <div className="flex justify-center gap-3">
+              <button onClick={() => onUpdateQuantity(item.id, item.item_name, -1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center transition-all shadow-sm bg-white"><Minus size={16} /></button>
+              <button onClick={() => onUpdateQuantity(item.id, item.item_name, 1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center transition-all shadow-sm bg-white"><Plus size={16} /></button>
+              <button onClick={() => onDeleteItem(item.id, item.item_name)} className="ml-2 w-10 h-10 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all border border-red-100"><Trash2 size={16} /></button>
+            </div>
           </div>
         ))}
       </div>
