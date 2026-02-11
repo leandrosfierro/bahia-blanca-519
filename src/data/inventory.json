@@ -1,0 +1,639 @@
+[
+    {
+        "floor": "PB",
+        "space": "Recepción",
+        "items": [
+            {
+                "id": "pb-rec-1",
+                "name": "Luces de emergencia",
+                "detail": "",
+                "price": 19900,
+                "quantity": 1
+            },
+            {
+                "id": "pb-rec-2",
+                "name": "Cartel Salida led",
+                "detail": "Atomlux",
+                "price": 63000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-rec-3",
+                "name": "Extintor ABC",
+                "detail": "Georgia 5kg",
+                "price": 60000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-rec-4",
+                "name": "Varillado escalera y pared",
+                "detail": "con estanteria",
+                "price": 418500,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "PB",
+        "space": "Ingreso exterior",
+        "items": [
+            {
+                "id": "pb-ext-1",
+                "name": "Portero eléctrico Kit 7\" IP",
+                "detail": "acceso huella + caja estanco",
+                "price": 531000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-ext-2",
+                "name": "Tablero eléctrico trifasico",
+                "detail": "insumos y tablero",
+                "price": 220000,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "PB",
+        "space": "Patio",
+        "items": [
+            {
+                "id": "pb-pat-1",
+                "name": "Sillon Acapulco set 2 + mesa",
+                "detail": "hierro macizo",
+                "price": 156800,
+                "quantity": 1
+            },
+            {
+                "id": "pb-pat-2",
+                "name": "Sillon Acapulco 2 cuerpos",
+                "detail": "",
+                "price": 95900,
+                "quantity": 1
+            },
+            {
+                "id": "pb-pat-3",
+                "name": "Chulengo",
+                "detail": "Asador",
+                "price": 165000,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "PB",
+        "space": "Oficina 1",
+        "items": [
+            {
+                "id": "pb-of1-1",
+                "name": "Varillado y pared con estante",
+                "detail": "",
+                "price": 245000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-2",
+                "name": "Cortina Roller Sun Screen",
+                "detail": "160 x 120 cm",
+                "price": 110000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-3",
+                "name": "Escritorio Gerencial milano",
+                "detail": "en L",
+                "price": 1113000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-4",
+                "name": "Tv",
+                "detail": "",
+                "price": 165200,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-5",
+                "name": "Router",
+                "detail": "",
+                "price": 41300,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-6",
+                "name": "Sillon matero",
+                "detail": "poltrona",
+                "price": 66500,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-7",
+                "name": "AA YORK YK6INV 3200 FC",
+                "detail": "Inverter",
+                "price": 756000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-8",
+                "name": "Silla Operativo ERG",
+                "detail": "Smart Tech",
+                "price": 42000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-9",
+                "name": "Sillon Gerencial",
+                "detail": "HDC Group",
+                "price": 56000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-10",
+                "name": "Cajonera móvil",
+                "detail": "Grande",
+                "price": 96600,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-11",
+                "name": "Pizzarra pared",
+                "detail": "80x140",
+                "price": 34000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of1-12",
+                "name": "Sillas visita",
+                "detail": "Estilo Lizi",
+                "price": 62993,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "PB",
+        "space": "Oficina 2",
+        "items": [
+            {
+                "id": "pb-of2-1",
+                "name": "Cortinas Roller Sun Screen",
+                "detail": "160 x 120 cm",
+                "price": 110000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of2-2",
+                "name": "AA YORK YK6INV 3200 FC",
+                "detail": "Inverter",
+                "price": 756000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of2-3",
+                "name": "Escritorio Scarpatti",
+                "detail": "",
+                "price": 270200,
+                "quantity": 2
+            },
+            {
+                "id": "pb-of2-4",
+                "name": "Pizzarra pared",
+                "detail": "80x140",
+                "price": 34000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of2-5",
+                "name": "Sillas visita",
+                "detail": "Estilo Lizi",
+                "price": 62993,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "PB",
+        "space": "Oficina 3",
+        "items": [
+            {
+                "id": "pb-of3-1",
+                "name": "Cortinas Roller Sun Screen",
+                "detail": "160 x 120 cm",
+                "price": 110000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of3-2",
+                "name": "AA YORK YK6INV 3200 FC",
+                "detail": "Inverter",
+                "price": 756000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of3-3",
+                "name": "Escritorio ISLA 4",
+                "detail": "Coworking 260x90",
+                "price": 770000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of3-4",
+                "name": "Cajonera móvil",
+                "detail": "Scarpatti",
+                "price": 96600,
+                "quantity": 2
+            },
+            {
+                "id": "pb-of3-5",
+                "name": "Sillon Gerencial",
+                "detail": "HDC Group",
+                "price": 56000,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of3-6",
+                "name": "Sillas visita",
+                "detail": "Estilo Lizi",
+                "price": 62993,
+                "quantity": 1
+            },
+            {
+                "id": "pb-of3-7",
+                "name": "Silla Operativo ERG",
+                "detail": "Smart Tech",
+                "price": 42000,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "1",
+        "space": "Descanso de escalera",
+        "items": [
+            {
+                "id": "1-desc-1",
+                "name": "Cortina Roller Blackout",
+                "detail": "200 x 120 cm",
+                "price": 167000,
+                "quantity": 1
+            },
+            {
+                "id": "1-desc-2",
+                "name": "Cartel Salida led",
+                "detail": "Atomlux",
+                "price": 63000,
+                "quantity": 1
+            },
+            {
+                "id": "1-desc-3",
+                "name": "Extintor ABC",
+                "detail": "Georgia 5kg",
+                "price": 60000,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "1",
+        "space": "Oficina 1",
+        "items": [
+            {
+                "id": "1-of1-1",
+                "name": "Cortina Roller Blackout & Sun Screen",
+                "detail": "160 x 120 cm",
+                "price": 257000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of1-2",
+                "name": "AA Hitachi ECO HI EF",
+                "detail": "Inverter",
+                "price": 434000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of1-3",
+                "name": "Escritorio Eco simples",
+                "detail": "",
+                "price": 101500,
+                "quantity": 2
+            },
+            {
+                "id": "1-of1-4",
+                "name": "Cajonera móvil",
+                "detail": "Grande",
+                "price": 96600,
+                "quantity": 2
+            },
+            {
+                "id": "1-of1-5",
+                "name": "Sillas visita",
+                "detail": "Estilo Lizi",
+                "price": 62993,
+                "quantity": 1
+            },
+            {
+                "id": "1-of1-6",
+                "name": "Silla Operativo ERG",
+                "detail": "Smart Tech",
+                "price": 42000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of1-7",
+                "name": "Router",
+                "detail": "",
+                "price": 41300,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "1",
+        "space": "Oficina 2",
+        "items": [
+            {
+                "id": "1-of2-1",
+                "name": "Cortina Roller Blackout & Sun Screen",
+                "detail": "160 x 120 cm",
+                "price": 257000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of2-2",
+                "name": "Escritorio ISLA 4",
+                "detail": "Coworking 260x90",
+                "price": 770000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of2-3",
+                "name": "Extención guardado",
+                "detail": "Armario bajo",
+                "price": 299600,
+                "quantity": 1
+            },
+            {
+                "id": "1-of2-4",
+                "name": "AA portatil",
+                "detail": "",
+                "price": 406000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of2-5",
+                "name": "Sillas visita",
+                "detail": "Estilo Lizi",
+                "price": 62993,
+                "quantity": 1
+            },
+            {
+                "id": "1-of2-6",
+                "name": "Silla Operativo ERG",
+                "detail": "Smart Tech",
+                "price": 42000,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "1",
+        "space": "Oficina 3",
+        "items": [
+            {
+                "id": "1-of3-1",
+                "name": "AA YORK YK6INV 3200 FC",
+                "detail": "Inverter",
+                "price": 756000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of3-2",
+                "name": "Cortinas Roller Sun Screen",
+                "detail": "160 x 120 cm",
+                "price": 110000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of3-3",
+                "name": "Escritorio Gerencial",
+                "detail": "Impomarket",
+                "price": 1260000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of3-4",
+                "name": "Cajonera móvil",
+                "detail": "Scarpatti",
+                "price": 132300,
+                "quantity": 1
+            },
+            {
+                "id": "1-of3-5",
+                "name": "Sillon Gerencial",
+                "detail": "HDC Group",
+                "price": 56000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of3-6",
+                "name": "Silla Operativo ERG",
+                "detail": "Smart Tech",
+                "price": 42000,
+                "quantity": 1
+            },
+            {
+                "id": "1-of3-7",
+                "name": "Sillas visita",
+                "detail": "Estilo Lizi",
+                "price": 62993,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "2",
+        "space": "Cocina",
+        "items": [
+            {
+                "id": "2-coc-1",
+                "name": "Heladera",
+                "detail": "con freezer",
+                "price": 350000,
+                "quantity": 1
+            },
+            {
+                "id": "2-coc-2",
+                "name": "Microondas",
+                "detail": "",
+                "price": 180000,
+                "quantity": 1
+            },
+            {
+                "id": "2-coc-3",
+                "name": "Cafetera",
+                "detail": "",
+                "price": 35000,
+                "quantity": 1
+            },
+            {
+                "id": "2-coc-4",
+                "name": "Pava electrica",
+                "detail": "",
+                "price": 20000,
+                "quantity": 1
+            }
+        ]
+    },
+    {
+        "floor": "2",
+        "space": "Salon",
+        "items": [
+            {
+                "id": "2-sal-1",
+                "name": "Blackout cortina americana Ventanal",
+                "detail": "620 x 140",
+                "price": 1450000,
+                "quantity": 1
+            },
+            {
+                "id": "2-sal-2",
+                "name": "AA YORK 6500 F",
+                "detail": "Gran capacidad",
+                "price": 2100000,
+                "quantity": 1
+            },
+            {
+                "id": "2-sal-3",
+                "name": "Mesa reunion",
+                "detail": "Industrial",
+                "price": 462000,
+                "quantity": 1
+            },
+            {
+                "id": "2-sal-4",
+                "name": "Sillas reunion x 8",
+                "detail": "Tulip",
+                "price": 42000,
+                "quantity": 8
+            },
+            {
+                "id": "2-sal-5",
+                "name": "Proyector",
+                "detail": "",
+                "price": 266000,
+                "quantity": 1
+            },
+            {
+                "id": "2-sal-6",
+                "name": "Repisas y bajo mesada",
+                "detail": "Guardado",
+                "price": 450000,
+                "quantity": 1
+            },
+            {
+                "id": "2-sal-7",
+                "name": "Router",
+                "detail": "",
+                "price": 41300,
+                "quantity": 1
+            },
+            {
+                "id": "2-sal-8",
+                "name": "Escritorio Scarpatti",
+                "detail": "",
+                "price": 270200,
+                "quantity": 4
+            },
+            {
+                "id": "2-sal-9",
+                "name": "Sillon Gerencial",
+                "detail": "HDC Group",
+                "price": 56000,
+                "quantity": 4
+            }
+        ]
+    },
+    {
+        "floor": "IT",
+        "space": "Computadoras",
+        "items": [
+            {
+                "id": "it-pc-1",
+                "name": "CPU AMD RYZEN 3 8GB 240 SSD 1T HD",
+                "detail": "Gamer setup",
+                "price": 411600,
+                "quantity": 9
+            },
+            {
+                "id": "it-pc-2",
+                "name": "CPU AMD RYZEN 3 16GB 240 SSD 1T HD",
+                "detail": "",
+                "price": 613200,
+                "quantity": 1
+            },
+            {
+                "id": "it-pc-3",
+                "name": "Celeron N3060 4Gb 240 GB SSD",
+                "detail": "",
+                "price": 259000,
+                "quantity": 1
+            },
+            {
+                "id": "it-pc-4",
+                "name": "Athon 3000 8 GB 240 GB SSD",
+                "detail": "",
+                "price": 368200,
+                "quantity": 2
+            }
+        ]
+    },
+    {
+        "floor": "IT",
+        "space": "Monitores",
+        "items": [
+            {
+                "id": "it-mon-1",
+                "name": "Monitor Samsung",
+                "detail": "",
+                "price": 170800,
+                "quantity": 1
+            },
+            {
+                "id": "it-mon-2",
+                "name": "Monitor Samsung 19\"",
+                "detail": "",
+                "price": 112000,
+                "quantity": 2
+            },
+            {
+                "id": "it-mon-3",
+                "name": "Monitor IC3",
+                "detail": "",
+                "price": 112000,
+                "quantity": 4
+            },
+            {
+                "id": "it-mon-4",
+                "name": "monitor Bangho",
+                "detail": "",
+                "price": 112000,
+                "quantity": 2
+            },
+            {
+                "id": "it-mon-5",
+                "name": "Samsung grande 23\"",
+                "detail": "vga",
+                "price": 112000,
+                "quantity": 1
+            },
+            {
+                "id": "it-mon-6",
+                "name": "Hp v194 19\"",
+                "detail": "vga",
+                "price": 80000,
+                "quantity": 6
+            }
+        ]
+    }
+]
