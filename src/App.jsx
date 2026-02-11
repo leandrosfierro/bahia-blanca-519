@@ -452,11 +452,20 @@ function App() {
               </div>
             </div>
 
-            <div className="mb-8 flex items-center justify-between">
-              <h3 className="text-2xl font-black text-slate-900 uppercase">Resumen por Áreas</h3>
+            <div className="mb-12 flex items-center justify-between">
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 uppercase">Resumen por Áreas</h3>
+                <p className="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest">Descarga de reportes técnicos actualizados</p>
+              </div>
               <div className="flex gap-4">
-                <button onClick={exportPDF} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-red-500 hover:text-red-500 flex items-center gap-2 transition-all"><FileText size={16} /> PDF Profesional</button>
-                <button onClick={exportExcel} className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-black text-xs uppercase text-slate-600 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-2 transition-all"><TableIcon size={16} /> Excel Detallado</button>
+                <button onClick={exportPDF} className="export-btn-v2 pdf">
+                  <FileText size={20} />
+                  Generar PDF Profesional
+                </button>
+                <button onClick={exportExcel} className="export-btn-v2 excel">
+                  <TableIcon size={20} />
+                  Descargar Excel Detallado
+                </button>
               </div>
             </div>
 

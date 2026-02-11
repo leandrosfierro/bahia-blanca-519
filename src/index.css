@@ -145,6 +145,50 @@ body {
   margin-top: 4px;
 }
 
+/* Export Buttons Styling */
+.export-btn-v2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px;
+  border-radius: 18px;
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.export-btn-v2.pdf {
+  background: white;
+  color: var(--text-main);
+  border-color: #fee2e2;
+}
+
+.export-btn-v2.pdf:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.3);
+}
+
+.export-btn-v2.excel {
+  background: white;
+  color: var(--text-main);
+  border-color: #d1fae5;
+}
+
+.export-btn-v2.excel:hover {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.3);
+}
+
 /* Operational View Image Container */
 .row-thumbnail-wrapper {
   width: 160px;
