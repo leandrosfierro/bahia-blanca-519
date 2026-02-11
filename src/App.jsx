@@ -218,77 +218,176 @@ function App() {
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    const date = new Date().toLocaleDateString();
-    doc.setFontSize(22);
+    const date = new Date().toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // --- CARATULA / PORTADA ---
+    doc.setFillColor(15, 23, 42); // Slate 900
+    doc.rect(0, 0, 210, 40, 'F');
+
+    doc.setFontSize(24);
+    doc.setTextColor(255, 255, 255);
+    doc.text('INFORME TÉCNICO DE ACTIVOS', 14, 20);
+    doc.setFontSize(14);
+    doc.text('Edificio Bahía Blanca 519', 14, 30);
+
     doc.setTextColor(15, 23, 42);
-    doc.text('Bahía Blanca 519 - Informe de Inventario', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`FECHA DE GENERACIÓN: ${date}`, 14, 50);
+
+    // Cuadro de Resumen Ejecutivo
+    doc.setDrawColor(226, 232, 240);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, 55, 182, 35, 3, 3, 'FD');
+
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Generado el: ${date}`, 14, 28);
-    doc.text(`Inversión Total: ${formatCurrency(grandTotal)}`, 14, 34);
+    doc.text('INVERSIÓN TOTAL PROYECTADA', 20, 65);
+    doc.setFontSize(18);
+    doc.setTextColor(37, 99, 235); // Blue 600
+    doc.text(formatCurrency(grandTotal), 20, 75);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('CANTIDAD DE ACTIVOS', 130, 65);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${totalItemsCount} unidades`, 130, 75);
+    doc.text(`Distribuido en ${inventory.length} espacios`, 130, 82);
+
+    // Tabla de Resumen por Áreas
     const summaryData = inventory.map(space => [
-      `Piso ${space.floor}`,
+      { content: `PISO ${space.floor}`, styles: { fontStyle: 'bold' } },
       space.space,
-      space.items.length,
-      formatCurrency(space.items.reduce((a, i) => a + (i.price * i.quantity), 0))
+      { content: space.items.length, styles: { halign: 'center' } },
+      { content: formatCurrency(space.items.reduce((a, i) => a + (i.price * i.quantity), 0)), styles: { halign: 'right', fontStyle: 'bold' } }
     ]);
+
     doc.autoTable({
-      startY: 45,
-      head: [['Nivel', 'Espacio', 'Ítems', 'Subtotal']],
+      startY: 100,
+      head: [['NIVEL', 'ESPACIO / OFICINA', 'CANT. ITEMS', 'SUBTOTAL ARS']],
       body: summaryData,
-      theme: 'grid',
-      headStyles: { fillColor: [37, 99, 235] },
+      theme: 'striped',
+      headStyles: {
+        fillColor: [15, 23, 42],
+        fontSize: 10,
+        halign: 'center'
+      },
+      styles: { fontSize: 9, cellPadding: 4 },
+      columnStyles: {
+        3: { halign: 'right' }
+      }
     });
+
+    // --- DETALLE POR CADA ESPACIO ---
     inventory.forEach((space) => {
       doc.addPage();
+
+      // Header de Sección
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, 210, 25, 'F');
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
-      doc.setTextColor(37, 99, 235);
-      doc.text(`Detalle: ${space.space} (Piso ${space.floor})`, 14, 20);
-      const spaceTotal = space.items.reduce((a, i) => a + (i.price * i.quantity), 0);
+      doc.text(`${space.space.toUpperCase()} - DETALLE TÉCNICO`, 14, 16);
+
+      doc.setTextColor(15, 23, 42);
       doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`Valor Total del Área: ${formatCurrency(spaceTotal)}`, 14, 28);
+      const spaceTotal = space.items.reduce((a, i) => a + (i.price * i.quantity), 0);
+      doc.text(`UBICACIÓN: Piso ${space.floor}`, 14, 35);
+      doc.text(`VALORIZACIÓN DEL ÁREA: ${formatCurrency(spaceTotal)}`, 14, 42);
+
       const itemsData = space.items.map(item => [
         item.item_name,
         item.detail || '-',
-        item.quantity,
-        formatCurrency(item.price),
-        formatCurrency(item.price * item.quantity)
+        { content: item.quantity, styles: { halign: 'center' } },
+        { content: formatCurrency(item.price), styles: { halign: 'right' } },
+        { content: formatCurrency(item.price * item.quantity), styles: { halign: 'right', fontStyle: 'bold' } }
       ]);
+
       doc.autoTable({
-        startY: 35,
-        head: [['Ítem', 'Detalle', 'Cant.', 'Precio Unit.', 'Subtotal']],
+        startY: 50,
+        head: [['ITEM', 'ESPECIFICACIÓN / DETALLE', 'CANT.', 'PRECIO UNIT.', 'SUBTOTAL']],
         body: itemsData,
-        theme: 'striped',
-        headStyles: { fillColor: [15, 23, 42] },
-        columnStyles: { 2: { halign: 'center' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
+        theme: 'grid',
+        headStyles: { fillColor: [71, 85, 105], fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        columnStyles: {
+          2: { halign: 'center', cellWidth: 20 },
+          3: { halign: 'right', cellWidth: 35 },
+          4: { halign: 'right', cellWidth: 35 }
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
       });
+
+      // Pie de página con numeración
+      const pageCount = doc.internal.getNumberOfPages();
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Bahía Blanca 519 - Página ${pageCount}`, 190, 285, { align: 'right' });
     });
-    doc.save(`INFORME_BB519_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    doc.save(`INFORME_INVENTARIO_BB519_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const exportExcel = () => {
-    const summarySheetData = inventory.map(space => ({
-      Nivel: space.floor,
-      Espacio: space.space,
-      'Cant. Items': space.items.length,
-      Total: space.items.reduce((a, i) => a + (i.price * i.quantity), 0)
-    }));
-    const summaryWs = XLSX.utils.json_to_sheet(summarySheetData);
-    const detailSheetData = items.map(item => ({
-      Nivel: item.floor,
-      Espacio: item.space,
-      Ítem: item.item_name,
-      Detalle: item.detail || '',
-      Cantidad: item.quantity,
-      'Precio Unitario': item.price,
-      Subtotal: item.price * item.quantity
-    }));
-    const detailWs = XLSX.utils.json_to_sheet(detailSheetData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, summaryWs, "Resumen de Áreas");
-    XLSX.utils.book_append_sheet(wb, detailWs, "Detalle de Activos");
-    XLSX.writeFile(wb, `REPORTE_TECNICO_BB519.xlsx`);
+
+    // 1. Hoja de Resumen General (Vista Gerencial)
+    const summarySheetData = inventory.map(space => ({
+      'Nivel/Piso': space.floor,
+      'Espacio / Oficina': space.space,
+      'Cantidad de Activos': space.items.length,
+      'Subtotal Inversión (ARS)': space.items.reduce((a, i) => a + (i.price * i.quantity), 0)
+    }));
+
+    // Fila de Total General al final del resumen
+    summarySheetData.push({
+      'Nivel/Piso': '',
+      'Espacio / Oficina': 'TOTAL GENERAL EDIFICIO',
+      'Cantidad de Activos': totalItemsCount,
+      'Subtotal Inversión (ARS)': grandTotal
+    });
+
+    const wsSummary = XLSX.utils.json_to_sheet(summarySheetData);
+
+    // Estilo de columnas (ancho)
+    const wscolsSummary = [
+      { wch: 15 },
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 25 }
+    ];
+    wsSummary['!cols'] = wscolsSummary;
+    XLSX.utils.book_append_sheet(wb, wsSummary, "RESUMEN EJECUTIVO");
+
+    // 2. Hoja de Detalle Completo (Para auditoría)
+    const detailSheetData = items.map(item => ({
+      'Piso': item.floor,
+      'Ambiente': item.space,
+      'Descripción del Activo': item.item_name,
+      'Especificación Técnica': item.detail || '-',
+      'Cantidad': item.quantity,
+      'Valor Unitario (ARS)': item.price,
+      'Impacto Total (ARS)': item.price * item.quantity
+    }));
+
+    const wsDetail = XLSX.utils.json_to_sheet(detailSheetData);
+    const wscolsDetail = [
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 35 },
+      { wch: 45 },
+      { wch: 12 },
+      { wch: 20 },
+      { wch: 20 }
+    ];
+    wsDetail['!cols'] = wscolsDetail;
+    XLSX.utils.book_append_sheet(wb, wsDetail, "INVENTARIO DETALLADO");
+
+    // 3. Generar archivo descarga
+    XLSX.writeFile(wb, `ESTADO_ACTIVOS_BB519_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen bg-slate-900"><RefreshCw className="animate-spin text-white" size={48} /></div>;
