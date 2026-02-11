@@ -228,11 +228,11 @@ function App() {
     doc.setFillColor(15, 23, 42); // Slate 900
     doc.rect(0, 0, 210, 40, 'F');
 
-    doc.setFontSize(24);
+    doc.setFontSize(26);
     doc.setTextColor(255, 255, 255);
-    doc.text('INFORME TÉCNICO DE ACTIVOS', 14, 20);
-    doc.setFontSize(14);
-    doc.text('Edificio Bahía Blanca 519', 14, 30);
+    doc.text('Bahía Blanca 519', 14, 20);
+    doc.setFontSize(12);
+    doc.text('INFORME TÉCNICO DE ACTIVOS E INVENTARIO', 14, 30);
 
     doc.setTextColor(15, 23, 42);
     doc.setFontSize(10);
