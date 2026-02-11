@@ -458,11 +458,17 @@ function App() {
                 <p className="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest">Descarga de reportes técnicos actualizados</p>
               </div>
               <div className="flex gap-4">
-                <button onClick={exportPDF} className="export-btn-v2 pdf">
+                <button
+                  onClick={(e) => { e.stopPropagation(); exportPDF(); }}
+                  className="export-btn-v2 pdf"
+                >
                   <FileText size={20} />
                   Generar PDF Profesional
                 </button>
-                <button onClick={exportExcel} className="export-btn-v2 excel">
+                <button
+                  onClick={(e) => { e.stopPropagation(); exportExcel(); }}
+                  className="export-btn-v2 excel"
+                >
                   <TableIcon size={20} />
                   Descargar Excel Detallado
                 </button>
