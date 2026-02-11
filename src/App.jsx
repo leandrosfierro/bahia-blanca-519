@@ -92,20 +92,35 @@ function App() {
 
   const handleUpdateQuantity = async (id, itemName, delta, currentQty) => {
     const nextQty = currentQty + delta;
+
     if (nextQty <= 0) {
       handleDeleteItem(id, itemName);
       return;
     }
-    await supabase.from('inventory').update({ quantity: nextQty }).eq('id', id);
+
+    // Optimistic Update
+    setItems(prev => prev.map(item => item.id === id ? { ...item, quantity: nextQty } : item));
+
+    const { error } = await supabase.from('inventory').update({ quantity: nextQty }).eq('id', id);
+    if (error) fetchData(); // Revert on error
   };
 
   const handleUpdatePrice = async (id, newPrice) => {
-    const priceVal = parseFloat(newPrice) || 0;
-    await supabase.from('inventory').update({ price: priceVal }).eq('id', id);
+    const priceVal = parseFloat(newPrice);
+    if (isNaN(priceVal)) return;
+
+    // Optimistic Update
+    setItems(prev => prev.map(item => item.id === id ? { ...item, price: priceVal } : item));
+
+    // Debounce the Supabase update (simple implementation)
+    const { error } = await supabase.from('inventory').update({ price: priceVal }).eq('id', id);
+    // No need to revert unless there's a serious error, as the user might still be typing
   };
 
   const handleDeleteItem = async (id, itemName) => {
     if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente "${itemName}" del inventario?`)) {
+      // Optimistic Delete
+      setItems(prev => prev.filter(item => item.id !== id));
       await supabase.from('inventory').delete().eq('id', id);
     }
   };
