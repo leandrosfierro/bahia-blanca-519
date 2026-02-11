@@ -38,7 +38,12 @@ body {
   top: 0;
   display: flex;
   flex-direction: column;
-  z-index: 50;
+  z-index: 80;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.open {
+  transform: translateX(0);
 }
 
 .sidebar-header {
@@ -109,6 +114,7 @@ body {
   margin-left: 300px;
   padding: 40px;
   min-height: 100vh;
+  transition: margin-left 0.3s ease;
 }
 
 /* Dashboard Cards */
@@ -209,9 +215,15 @@ body {
 }
 
 /* Table Style Dashboard Grid */
+.dash-grid {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .grid-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr;
+  grid-template-columns: 2fr 80px 140px 140px 120px;
+  min-width: 800px;
   padding: 12px 24px;
   background: var(--accent-light);
   border-radius: 12px;
@@ -220,7 +232,8 @@ body {
 
 .grid-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr;
+  grid-template-columns: 2fr 80px 140px 140px 120px;
+  min-width: 800px;
   padding: 24px;
   border-bottom: 1px solid var(--border);
   align-items: center;
@@ -356,9 +369,73 @@ body {
 
   .main-layout {
     margin-left: 0;
+    padding: 20px;
+  }
+
+  .grand-total-section {
+    padding: 40px 20px;
+    border-radius: 24px;
+    margin-bottom: 32px;
   }
 
   .grand-total-section .value {
-    font-size: 56px;
+    font-size: 42px;
+  }
+
+  .export-btn-v2 {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Summary header flex container */
+  .mb-12.flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 20px;
+  }
+
+  .mb-12.flex.items-center.justify-between .flex.gap-4 {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  /* Room header in operational view */
+  .dash-header.items-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 24px;
+  }
+
+  .total-pill.bg-slate-900 {
+    width: 100%;
+    text-align: left !important;
+    transform: none !important;
+    scale: 1 !important;
+    padding: 24px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .grand-total-section .value {
+    font-size: 32px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-card {
+    padding: 20px;
+  }
+}
+
+/* Utilities */
+.lg\:hidden {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .lg\:hidden {
+    display: none;
   }
 }

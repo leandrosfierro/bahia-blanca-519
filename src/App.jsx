@@ -30,7 +30,8 @@ import {
   Table as TableIcon,
   Check,
   Plus as PlusIcon,
-  AlertCircle
+  AlertCircle,
+  Menu
 } from 'lucide-react';
 
 const formatCurrency = (val) => {
@@ -54,6 +55,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedFloors, setExpandedFloors] = useState(['PB', '1', '2', 'IT']);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const fetchData = async () => {
     const { data, error } = await supabase
@@ -401,16 +403,33 @@ function App() {
         </div>
       )}
 
-      <aside className="sidebar">
-        <div className="sidebar-header">
+      {/* Mobile Menu Toggle */}
+      <button
+        onClick={() => setIsSidebarOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-[60] w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+      >
+        <Menu size={28} />
+      </button>
+
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-header flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><Building2 size={22} /></div>
             <div><h1 className="text-lg font-black tracking-tighter text-slate-900">BB 519</h1><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">DASHBOARD</span></div>
           </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-900"><X size={20} /></button>
         </div>
         <div className="sidebar-content">
-          <button onClick={() => setView('summary')} className={`nav-item mb-2 ${view === 'summary' ? 'active' : ''}`}><PieChart size={18} />Resumen General</button>
-          <button onClick={() => setView('operational')} className={`nav-item mb-6 ${view === 'operational' ? 'active' : ''}`}><LayoutGrid size={18} />Vista Operativa</button>
+          <button onClick={() => { setView('summary'); setIsSidebarOpen(false); }} className={`nav-item mb-2 ${view === 'summary' ? 'active' : ''}`}><PieChart size={18} />Resumen General</button>
+          <button onClick={() => { setView('operational'); setIsSidebarOpen(false); }} className={`nav-item mb-6 ${view === 'operational' ? 'active' : ''}`}><LayoutGrid size={18} />Vista Operativa</button>
           <p className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Estructura</p>
           {['PB', '1', '2', 'IT'].map(floor => (
             <div key={floor} className="nav-group">
@@ -421,7 +440,7 @@ function App() {
               {expandedFloors.includes(floor) && (
                 <div className="mt-1">
                   {inventory.filter(s => s.floor === floor).map(space => (
-                    <button key={`${space.floor}-${space.space}`} onClick={() => { setSelectedSpaceId(`${space.floor}-${space.space}`); setView('operational'); }} className={`nav-sub-item ${selectedSpaceId === `${space.floor}-${space.space}` ? 'active' : ''}`}>{space.space}</button>
+                    <button key={`${space.floor}-${space.space}`} onClick={() => { setSelectedSpaceId(`${space.floor}-${space.space}`); setView('operational'); setIsSidebarOpen(false); }} className={`nav-sub-item ${selectedSpaceId === `${space.floor}-${space.space}` ? 'active' : ''}`}>{space.space}</button>
                   ))}
                 </div>
               )}
