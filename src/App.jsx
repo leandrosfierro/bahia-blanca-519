@@ -126,7 +126,7 @@ function App() {
   };
 
   const handleAddItem = async (floor, space, newItem) => {
-    const { error } = await supabase.from('inventory').insert({
+    const itemToInsert = {
       floor,
       space,
       item_name: newItem.item_name,
@@ -134,8 +134,21 @@ function App() {
       quantity: parseInt(newItem.quantity) || 1,
       price: parseFloat(newItem.price) || 0,
       image_url: newItem.image_url
-    });
-    if (error) alert("Error al agregar ítem: " + error.message);
+    };
+
+    // Optimistic Update (Temporary ID)
+    const tempId = Date.now();
+    setItems(prev => [...prev, { ...itemToInsert, id: tempId }]);
+
+    const { data, error } = await supabase.from('inventory').insert(itemToInsert).select();
+
+    if (error) {
+      alert("Error al agregar ítem: " + error.message);
+      fetchData(); // Rollback/Refresh
+    } else if (data && data[0]) {
+      // Replace optimistic item with real one from DB (to get the real ID)
+      setItems(prev => prev.map(it => it.id === tempId ? data[0] : it));
+    }
   };
 
   const handleUpdateImage = async (floor, space, file) => {
