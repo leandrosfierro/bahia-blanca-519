@@ -335,7 +335,12 @@ function App() {
                 const currentImg = space.image_url || DEFAULT_FOTOREF;
                 return (
                   <div key={`${space.floor}-${space.space}`} className="summary-card-v2" onClick={() => { setSelectedSpaceId(`${space.floor}-${space.space}`); setView('operational'); }}>
-                    <img src={currentImg} className="mini-thumb" alt="" />
+                    <img
+                      src={currentImg}
+                      className="mini-thumb"
+                      alt=""
+                      onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_FOTOREF; }}
+                    />
                     <span className="floor-tag">PISO {space.floor}</span>
                     <h4 className="space-name">{space.space}</h4>
                     <p className="amount-display">{formatCurrency(spaceTotal)}</p>
@@ -394,8 +399,13 @@ function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteIte
     <div className="dash-card border-l-8 border-l-blue-500">
       <div className="dash-header items-center">
         <div className="flex gap-8 items-center">
-          <div className="group relative w-40 h-28 flex-shrink-0 cursor-pointer overflow-hidden rounded-xl shadow-lg border-2 border-slate-100" onClick={() => onEnlarge(currentImg)}>
-            <img src={currentImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+          <div className="group row-thumbnail-wrapper cursor-pointer" onClick={() => onEnlarge(currentImg)}>
+            <img
+              src={currentImg}
+              className="group-hover:scale-110"
+              alt=""
+              onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_FOTOREF; }}
+            />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 size={18} className="text-white" /></div>
             <label className="absolute bottom-1 right-1 bg-white p-2 rounded-md shadow-lg cursor-pointer hover:bg-blue-50 transition-colors" title="Cambiar Foto" onClick={e => e.stopPropagation()}><Camera size={14} className="text-blue-600" /><input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} /></label>
           </div>

@@ -145,6 +145,25 @@ body {
   margin-top: 4px;
 }
 
+/* Operational View Image Container */
+.row-thumbnail-wrapper {
+  width: 160px;
+  height: 110px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #f1f5f9;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.row-thumbnail-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
 /* Table Style Dashboard Grid */
 .grid-header {
   display: grid;
@@ -207,12 +226,15 @@ body {
 
 .summary-card-v2 .mini-thumb {
   width: 100%;
-  height: 120px;
+  height: 140px;
+  /* Fixed height to anchor the card layout */
   border-radius: 16px;
   object-fit: cover;
+  object-position: center;
   margin-bottom: 16px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: #f1f5f9;
+  display: block;
 }
 
 .summary-card-v2 .floor-tag {
