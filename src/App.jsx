@@ -155,8 +155,12 @@ function App() {
     if (!file) return;
     setSyncing(true);
     try {
+      // Limpiar el nombre del archivo de acentos y caracteres especiales (Ej: Recepción -> Recepcion)
+      const cleanSpace = space.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "-");
+      const cleanFloor = floor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "-");
+
       const fileExt = file.name.split('.').pop();
-      const fileName = `${floor}-${space}-${Date.now()}.${fileExt}`;
+      const fileName = `${cleanFloor}-${cleanSpace}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
