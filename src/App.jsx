@@ -27,7 +27,9 @@ import {
   Trash2,
   ArrowRight,
   FileText,
-  Table as TableIcon
+  Table as TableIcon,
+  Check,
+  Plus as PlusIcon
 } from 'lucide-react';
 
 const formatCurrency = (val) => {
@@ -86,12 +88,10 @@ function App() {
 
   const handleUpdateQuantity = async (id, itemName, delta, currentQty) => {
     const nextQty = currentQty + delta;
-
     if (nextQty <= 0) {
       handleDeleteItem(id, itemName);
       return;
     }
-
     await supabase.from('inventory').update({ quantity: nextQty }).eq('id', id);
   };
 
@@ -102,10 +102,21 @@ function App() {
 
   const handleDeleteItem = async (id, itemName) => {
     if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente "${itemName}" del inventario?`)) {
-      const { error } = await supabase.from('inventory').delete().eq('id', id);
-      if (error) alert("Error al eliminar: " + error.message);
-      // fetchData() se llama vía suscripción real-time
+      await supabase.from('inventory').delete().eq('id', id);
     }
+  };
+
+  const handleAddItem = async (floor, space, newItem) => {
+    const { error } = await supabase.from('inventory').insert({
+      floor,
+      space,
+      item_name: newItem.item_name,
+      detail: newItem.detail,
+      quantity: parseInt(newItem.quantity) || 1,
+      price: parseFloat(newItem.price) || 0,
+      image_url: newItem.image_url // Persist image URL if it exists for that space
+    });
+    if (error) alert("Error al agregar ítem: " + error.message);
   };
 
   const handleUpdateImage = async (floor, space, file) => {
@@ -123,6 +134,8 @@ function App() {
       const key = `${item.floor}-${item.space}`;
       if (!acc[key]) acc[key] = { floor: item.floor, space: item.space, image_url: item.image_url, items: [] };
       acc[key].items.push(item);
+      // Ensure existing image_url is propagated to the space object
+      if (item.image_url && !acc[key].image_url) acc[key].image_url = item.image_url;
       return acc;
     }, {});
     return Object.values(grouped);
@@ -317,6 +330,7 @@ function App() {
                 onUpdateQuantity={handleUpdateQuantity}
                 onUpdatePrice={handleUpdatePrice}
                 onDeleteItem={handleDeleteItem}
+                onAddItem={handleAddItem}
                 onImageUpload={handleUpdateImage}
                 onEnlarge={url => setSelectedImage(url)}
               />
@@ -328,24 +342,64 @@ function App() {
   );
 }
 
-function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteItem, onImageUpload, onEnlarge }) {
+function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteItem, onAddItem, onImageUpload, onEnlarge }) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [newItem, setNewItem] = useState({ item_name: '', detail: '', quantity: 1, price: 0 });
+
   const total = space.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const currentImg = space.image_url || (space.floor === 'PB' ? '/Planta baja general.png' : space.floor === '1' ? '/Planta piso 1.png' : '/Planta piso 2.png');
+
+  const handleSaveNewItem = () => {
+    if (!newItem.item_name) {
+      alert("Por favor ingrese el nombre del item.");
+      return;
+    }
+    onAddItem(space.floor, space.space, { ...newItem, image_url: space.image_url });
+    setNewItem({ item_name: '', detail: '', quantity: 1, price: 0 });
+    setIsAdding(false);
+  };
+
   return (
     <div className="dash-card border-l-8 border-l-blue-500">
       <div className="dash-header items-center">
         <div className="flex gap-8 items-center">
-          <div className="group relative w-32 h-24 flex-shrink-0 cursor-pointer overflow-hidden rounded-xl shadow-lg" onClick={() => onEnlarge(currentImg)}>
+          <div className="group relative w-40 h-28 flex-shrink-0 cursor-pointer overflow-hidden rounded-xl shadow-lg border-2 border-slate-100" onClick={() => onEnlarge(currentImg)}>
             <img src={currentImg} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="" />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 size={18} className="text-white" /></div>
-            <label className="absolute bottom-1 right-1 bg-white p-1.5 rounded-md shadow-lg cursor-pointer" onClick={e => e.stopPropagation()}><Camera size={12} className="text-blue-600" /><input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} /></label>
+            <label className="absolute bottom-1 right-1 bg-white p-2 rounded-md shadow-lg cursor-pointer hover:bg-blue-50 transition-colors" title="Cambiar Foto" onClick={e => e.stopPropagation()}><Camera size={14} className="text-blue-600" /><input type="file" className="hidden" accept="image/*" onChange={e => onImageUpload(space.floor, space.space, e.target.files[0])} /></label>
           </div>
-          <div><p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">PISO {space.floor}</p><h2 className="text-4xl font-black text-slate-900 leading-none">{space.space}</h2><p className="text-[10px] font-bold text-slate-400 mt-2"><MapPin size={12} className="inline mr-1" /> Bahía Blanca 519</p></div>
+          <div><p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">PISO {space.floor}</p><div className="flex items-center gap-4"><h2 className="text-4xl font-black text-slate-900 leading-none">{space.space}</h2><button onClick={() => setIsAdding(!isAdding)} className={`p-2 rounded-lg transition-all ${isAdding ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="Agregar Nuevo Item">{isAdding ? <X size={20} /> : <PlusIcon size={20} />}</button></div><p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest"><MapPin size={12} className="inline mr-1" /> Bahía Blanca 519 | {space.items.length} ACTIVOS CLOUD</p></div>
         </div>
-        <div className="total-pill bg-slate-900 p-6 rounded-3xl text-right scale-110"><span className="text-[10px] font-black text-blue-400 uppercase block mb-1">TOTAL ÁREA</span><span className="text-3xl font-black text-white font-mono">{formatCurrency(total)}</span></div>
+        <div className="total-pill bg-slate-900 p-6 rounded-3xl text-right scale-110"><span className="text-[10px] font-black text-blue-400 uppercase block mb-1 tracking-widest">TOTAL ÁREA</span><span className="text-3xl font-black text-white font-mono">{formatCurrency(total)}</span></div>
       </div>
+
       <div className="dash-grid mt-10 bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
         <div className="grid-header px-4"><span>Ítem Inventariado</span><span className="text-center">Cant.</span><span>Precio Unit.</span><span className="text-right">Subtotal</span><span className="text-center">Acciones</span></div>
+
+        {/* ADD NEW ITEM FORM ROW */}
+        {isAdding && (
+          <div className="grid-row px-4 bg-blue-50/50 border-2 border-blue-200 rounded-xl mb-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="cell-name pr-4">
+              <input type="text" placeholder="Nombre del nuevo ítem..." className="w-full bg-white border-2 border-slate-200 p-2 rounded-lg font-bold text-slate-800 outline-none focus:border-blue-500" value={newItem.item_name} onChange={e => setNewItem({ ...newItem, item_name: e.target.value })} />
+              <input type="text" placeholder="Detalle técnico (opcional)..." className="w-full bg-white border-2 border-slate-100 p-1.5 rounded-lg text-xs mt-2 outline-none focus:border-blue-300" value={newItem.detail} onChange={e => setNewItem({ ...newItem, detail: e.target.value })} />
+            </div>
+            <div className="cell-qty flex justify-center">
+              <input type="number" className="w-20 text-center bg-white border-2 border-slate-200 p-2 rounded-lg font-black text-blue-600" value={newItem.quantity} onChange={e => setNewItem({ ...newItem, quantity: e.target.value })} min="1" />
+            </div>
+            <div className="cell-price px-4 flex justify-center">
+              <div className="price-input-wrapper">
+                <input type="number" className="price-input bg-white border-2 border-blue-200" value={newItem.price} onChange={e => setNewItem({ ...newItem, price: e.target.value })} />
+              </div>
+            </div>
+            <div className="cell-subtotal text-right font-black text-xl text-emerald-600 font-mono">
+              {formatCurrency(newItem.price * newItem.quantity)}
+            </div>
+            <div className="flex justify-center gap-2">
+              <button onClick={handleSaveNewItem} className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200 hover:scale-105 transition-all"><Check size={24} /></button>
+            </div>
+          </div>
+        )}
+
         {space.items.map(item => (
           <div key={item.id} className="grid-row px-4">
             <div className="cell-name"><span className="text-base block font-bold">{item.item_name}</span><p className="text-[10px] uppercase opacity-60 font-bold">{item.detail || 'ESPECIFICACIÓN ESTÁNDAR'}</p></div>
@@ -353,8 +407,8 @@ function DashboardSpaceRow({ space, onUpdateQuantity, onUpdatePrice, onDeleteIte
             <div className="cell-price px-4"><div className="price-input-wrapper"><input type="number" className="price-input" value={item.price} onChange={e => onUpdatePrice(item.id, e.target.value)} /></div></div>
             <div className="cell-subtotal text-right font-black text-xl text-emerald-600 font-mono">{formatCurrency(item.price * item.quantity)}</div>
             <div className="flex justify-center gap-3">
-              <button onClick={() => onUpdateQuantity(item.id, item.item_name, -1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center transition-all shadow-sm bg-white"><Minus size={16} /></button>
-              <button onClick={() => onUpdateQuantity(item.id, item.item_name, 1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center transition-all shadow-sm bg-white"><Plus size={16} /></button>
+              <button onClick={() => onUpdateQuantity(item.id, item.item_name, -1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center transition-all bg-white"><Minus size={16} /></button>
+              <button onClick={() => onUpdateQuantity(item.id, item.item_name, 1, item.quantity)} className="w-10 h-10 rounded-lg border-2 border-slate-200 text-slate-400 hover:border-blue-500 hover:text-blue-500 flex items-center justify-center transition-all bg-white"><PlusIcon size={16} /></button>
               <button onClick={() => onDeleteItem(item.id, item.item_name)} className="ml-2 w-10 h-10 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all border border-red-100"><Trash2 size={16} /></button>
             </div>
           </div>
